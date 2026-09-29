@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intelligent Dead Reckoning · SIH 2026 · PS 26168</title>
+  <meta name="description" content="Phone-only dead reckoning that keeps navigating through tunnels, basements and GNSS jamming, and reports how far to trust its position. SIH 2026, Problem Statement 26168.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Intelligent Dead Reckoning · SIH 2026 · PS 26168">
+  <meta property="og:description" content="Phone-only dead reckoning through tunnels, basements and GNSS jamming, with a published protection level. No OBD, no extra hardware.">
+  <meta name="theme-color" content="#1B3A8C">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --navy: #1B3A8C; --blue: #2F7FD8; --green: #22A06B; --purple: #6C4AD6; --orange: #D9731A;
+      --ink: #1C2B4A; --body: #2E3A55; --quiet: #5A6A85; --line: #DDE4F0;
+      --bg: #F6F8FC; --card: #FFFFFF; --tint: #EEF3FC;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--body);
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px; line-height: 1.6;
+    }
+    a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--navy); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 56px 0 40px; }
+    .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: .04em; color: var(--blue); margin: 0 0 12px; }
+    h1 { font-size: 48px; line-height: 1.1; color: var(--navy); margin: 0 0 16px; letter-spacing: -.01em; }
+    .lead { font-size: 20px; color: var(--ink); max-width: 760px; margin: 0 0 20px; }
+    .status {
+      display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--navy);
+      border: 1px solid #BFD0F1; background: var(--tint); border-radius: 999px; padding: 6px 14px;
+    }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 36px 0 10px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
+    .stat b { display: block; font-size: 34px; line-height: 1.1; color: var(--navy); }
+    .stat span { display: block; font-size: 15px; color: var(--ink); margin-top: 6px; }
+    .stat small { display: block; font-size: 13px; color: var(--quiet); margin-top: 4px; }
+    .note { font-size: 14px; color: var(--quiet); margin: 8px 0 0; }
+    section { padding: 36px 0; border-top: 1px solid var(--line); }
+    h2 { font-size: 28px; color: var(--navy); margin: 0 0 18px; }
+    .sub { color: var(--quiet); font-size: 15px; margin: -10px 0 18px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .card h3 { margin: 0 0 8px; font-size: 19px; color: var(--ink); }
+    .card p { margin: 0; font-size: 16px; }
+    .rank { display: flex; gap: 14px; align-items: flex-start; }
+    .rank .n {
+      flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+      font-weight: 700; color: #fff; background: var(--navy); font-size: 16px;
+    }
+    .rank .metric { margin-top: 10px; font-size: 15px; font-weight: 600; color: var(--orange); }
+    figure { margin: 22px 0 0; }
+    figure img { display: block; width: 100%; height: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+    figcaption { font-size: 14px; color: var(--quiet); margin-top: 8px; }
+    .table { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 640px; }
+    th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--ink); font-size: 14px; background: var(--tint); }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { color: var(--ink); font-weight: 600; }
+    .restated td:first-child::after { content: " · restated"; font-weight: 400; color: var(--quiet); }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .chips li { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 15px; color: var(--ink); }
+    .road { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+    .road li { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; }
+    .road b { color: var(--ink); }
+    .refs { margin: 0; padding-left: 20px; }
+    .refs li { margin: 6px 0; }
+    footer { border-top: 1px solid var(--line); padding: 28px 0 48px; font-size: 14px; color: var(--quiet); }
+    @media (max-width: 900px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid3 { grid-template-columns: 1fr; }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 0 16px; }
+      body { font-size: 16px; }
+      header { padding: 36px 0 28px; }
+      h1 { font-size: 34px; }
+      .lead { font-size: 18px; }
+      .stat b { font-size: 28px; }
+      h2 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Smart India Hackathon 2026 · Problem Statement 26168 · ISRO</p>
+      <h1>Intelligent Dead Reckoning</h1>
+      <p class="lead">Keeps a phone navigating through tunnels, basements and GNSS jamming, and tells you how far to trust its position. It needs only the phone's own sensors and an offline map: no OBD port, no extra hardware.</p>
+      <span class="status">Prototype in development · the live demo will be published at this address</span>
+
+      <div class="stats">
+        <div class="stat"><b>43.5 m</b><span>drift over a 1 km tunnel at 60 km/h</span><small>target &lt; 100 m</small></div>
+        <div class="stat"><b>3.3 m</b><span>drift over a 50 m car-park run</span><small>target &lt; 5 m</small></div>
+        <div class="stat"><b>8.4 ms</b><span>per 10 Hz cycle on a Cortex-A55 core</span><small>target &lt; 15 ms</small></div>
+        <div class="stat"><b>93 kB</b><span>of network weights, 23,367 parameters</span><small>target &lt; 15 MB</small></div>
+      </div>
+      <p class="note">Closed-form design budgets and a pessimistic compute estimate. Benchmark runs on the IO-VNBD dataset will replace them.</p>
+    </header>
+
+    <section id="problem">
+      <h2>Why phones get lost</h2>
+      <div class="grid3">
+        <div class="card">
+          <h3>GNSS disappears</h3>
+          <p>Each concrete slab costs 14–17 dB of signal. A 10 mW pocket jammer drops C/N0 from 45.5 to 18 dB-Hz at 1 km, and GPS spoofing near Delhi's IGI airport was reported to Parliament in December 2025.</p>
+        </div>
+        <div class="card">
+          <h3>A phone IMU alone drifts fast</h3>
+          <p>Integrated on its own, a phone IMU breaks a 10% drift budget in 8–34 seconds. A 20 mg accelerometer bias alone is 353 m after a minute, and road vibration is about 1,000× the sensor's noise.</p>
+        </div>
+        <div class="card">
+          <h3>India rides on two wheels</h3>
+          <p>About 260 million two-wheelers against 50 million cars. Most have no usable OBD speed, and the phone sits in a loose holder that can slip or swivel.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <p>One right-invariant Kalman filter (IEKF) on the phone fuses a learned speed, the vehicle's motion constraints, stops and an offline OpenStreetMap. When GNSS drops, nothing is swapped: fix updates stop, everything else keeps running, and a protection level reports how far the position can be trusted. Switching from GNSS to dead reckoning takes 0 ms; switching back takes about 1.2 ms of compute.</p>
+      <figure>
+        <img src="assets/system-flow.png" width="2400" height="1350" loading="lazy"
+             alt="End-to-end system flow. Inputs (GNSS receiver, offline OpenStreetMap cache, phone sensors, on-device memory) feed the core on the phone (front end, alignment, speed network, noise adapter, GNSS integrity checks, map-matcher, vehicle constraints) into one IEKF. Its outputs serve the mobile app, an integration SDK, fleet dispatch, an edge unit and road maps. The two networks are trained offline on the IO-VNBD dataset.">
+        <figcaption>End-to-end flow, from phone sensors to app, SDK, fleet and edge outputs. <a href="assets/system-flow.png">Open the full-size image</a>.</figcaption>
+      </figure>
+    </section>
+
+    <section id="novelties">
+      <h2>What's new</h2>
+      <p class="sub">Ranked by the drift each one removes in a 60 s, 1 km tunnel at 60 km/h (design budget).</p>
+      <div class="grid2">
+        <div class="card rank"><span class="n">1</span><div>
+          <h3>Physics-informed speed network</h3>
+          <p>A virtual odometer trained on CAN wheel speeds and run from the IMU alone, with noise scaled to the measured road vibration.</p>
+          <div class="metric">308 m → about 30 m</div></div></div>
+        <div class="card rank"><span class="n">2</span><div>
+          <h3>Self-calibrating mount</h3>
+          <p>Learns how the phone sits in the vehicle from turns, and re-learns it when the phone tips, swivels or loosens.</p>
+          <div class="metric">35 m avoided per 2° of mount error</div></div></div>
+        <div class="card rank"><span class="n">3</span><div>
+          <h3>Closed-loop map projection</h3>
+          <p>Treats OpenStreetMap's own offset as a filter state, remembered for each road; a map-free shadow filter stops the map confirming itself.</p>
+          <div class="metric">cross-track 26 m → 1.4–6.3 m</div></div></div>
+        <div class="card rank"><span class="n">4</span><div>
+          <h3>Two-wheeler lean decoupling</h3>
+          <p>Tells a scooter from a car within about one turn, and keeps lean apart from real slides on wet roads and gravel.</p>
+          <div class="metric">17.7 m of false-tilt error in 3 s removed</div></div></div>
+      </div>
+    </section>
+
+    <section id="targets">
+      <h2>Problem-statement targets</h2>
+      <p class="sub">Design budgets and estimates until the IO-VNBD benchmark runs are in.</p>
+      <div class="table">
+        <table>
+          <thead><tr><th>Target</th><th>This design</th><th>Shown by</th></tr></thead>
+          <tbody>
+            <tr><td>Tunnel: &lt; 100 m over 1 km at 60 km/h</td><td>43.5 m (53 m worst case)</td><td>IO-VNBD simulated outages</td></tr>
+            <tr><td>Car park: &lt; 5 m over 50 m</td><td>3.3 m (4.4 m worst case)</td><td>own logs; IO-VNBD has no car park</td></tr>
+            <tr><td>Phone: 10 Hz, &lt; 15 ms per cycle</td><td>8.4 ms at a pessimistic 0.1 GMAC/s</td><td>on-device benchmark</td></tr>
+            <tr><td>Edge: about 200 Hz</td><td>200 Hz propagation, 9.7 MMAC/s</td><td>Raspberry Pi 5 or Jetson run</td></tr>
+            <tr><td>Mode switch: &lt; 100 ms, both ways</td><td>0 ms to DR; about 1.2 ms back to GNSS</td><td>run-log timestamps</td></tr>
+            <tr><td>Model: &lt; 1.5 M parameters, &lt; 15 MB</td><td>23,367 parameters, 93 kB</td><td>exported model files</td></tr>
+            <tr><td>No OBD or CAN at runtime</td><td>phone sensors, GNSS and OSM only</td><td>phone-only IO-VNBD sessions</td></tr>
+            <tr class="restated"><td>Cross-track ≤ 1.75 m</td><td>1.4 m where the lane is known; 1.4–6.3 m road-level otherwise</td><td>map ablation</td></tr>
+            <tr class="restated"><td>Re-lock &lt; 50 ms</td><td>set by the receiver (1 s hot start); the edge build feeds it the DR position</td><td>receiver and filter logs</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">The two restated rows are limits of the map and the GNSS receiver, not of the software: lane-level accuracy needs a lane-level map, and re-acquisition time belongs to the receiver.</p>
+    </section>
+
+    <section id="stack">
+      <h2>Built with</h2>
+      <ul class="chips">
+        <li>C++20 · Eigen3 · GeographicLib</li>
+        <li>PyTorch</li>
+        <li>ONNX / LiteRT</li>
+        <li>Flutter</li>
+        <li>Kotlin + Android NDK</li>
+        <li>OpenStreetMap + SQLite R-tree</li>
+        <li>ROS 2 (edge)</li>
+        <li>IO-VNBD dataset</li>
+      </ul>
+    </section>
+
+    <section id="roadmap">
+      <h2>Coming to this address</h2>
+      <ul class="road">
+        <li><b>Benchmark results on IO-VNBD:</b> simulated 10–180 s outages scored with CRSE, CAE, AEPS and drift %.</li>
+        <li><b>Browser replay of real outages:</b> the dead-reckoned track with its growing uncertainty circle.</li>
+        <li><b>Android app beta:</b> live map, dead-reckoning mode badge, tunnel-ahead banner and jamming alerts.</li>
+      </ul>
+    </section>
+
+    <section id="research">
+      <h2>Research base</h2>
+      <ul class="refs">
+        <li><a href="https://arxiv.org/abs/1904.06064">AI-IMU Dead-Reckoning</a>, Brossard, Barrau and Bonnabel, IEEE Transactions on Intelligent Vehicles, 2020</li>
+        <li><a href="https://arxiv.org/abs/1905.12853">RoNIN: Robust Neural Inertial Navigation in the Wild</a>, Herath, Yan and Furukawa, ICRA 2020</li>
+        <li><a href="https://www.semanticscholar.org/paper/Hidden-Markov-map-matching-through-noise-and-Newson-Krumm/e573b7076a8a6e1ec8044351e4bd149194ec2e19">Hidden Markov map matching through noise and sparseness</a>, Newson and Krumm, ACM SIGSPATIAL GIS 2009</li>
+        <li><a href="https://arxiv.org/abs/2109.03091">OdoNet: untethered speed aiding for vehicle navigation</a>, Tang et al.</li>
+        <li><a href="https://github.com/onyekpeu/IO-VNBD">IO-VNBD dataset</a>, Onyekpe et al., Data in Brief, 2021</li>
+      </ul>
+    </section>
+
+    <footer>
+      Smart India Hackathon 2026 · Problem Statement 26168. The full prototype and live demo will be published at this same address.
+    </footer>
+  </div>
+</body>
+</html>
