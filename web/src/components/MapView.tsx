@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import { Navigation } from "lucide-react";
 import type { DeviceTelemetry, RoadHazard } from "../types.js";
 
 interface MapViewProps {
@@ -28,8 +29,13 @@ export const MapView: React.FC<MapViewProps> = ({
   const [region, setRegion] = useState<string>(activeRegion);
 
   const regionConfigs: Record<string, { label: string; center: [number, number]; zoom: number }> = {
+    my_location: {
+      label: "📍 My Live Location (India)",
+      center: [78.9629, 20.5937],
+      zoom: 15.5,
+    },
     pan_india: {
-      label: "🇮🇳 Pan-India Overview",
+      label: "🇮🇳 Pan-India Highways",
       center: [78.9629, 21.5937],
       zoom: 4.8,
     },
@@ -58,6 +64,12 @@ export const MapView: React.FC<MapViewProps> = ({
   const handleSelectRegion = (rKey: string) => {
     setRegion(rKey);
     if (onRegionChange) onRegionChange(rKey);
+
+    if (rKey === "my_location") {
+      locateUser();
+      return;
+    }
+
     const target = regionConfigs[rKey];
     if (map.current && target) {
       map.current.flyTo({
@@ -67,6 +79,39 @@ export const MapView: React.FC<MapViewProps> = ({
         duration: 1800,
         essential: true,
       });
+    }
+  };
+
+  const locateUser = () => {
+    // Check if phone sensor telemetry is already streaming coordinates
+    const phoneTelem = telemetryList.find((t) => t.device_id.startsWith("PHONE_") || t.device_id.startsWith("DEV_LIVE"));
+    if (phoneTelem && phoneTelem.lat && phoneTelem.lon) {
+      map.current?.flyTo({
+        center: [phoneTelem.lon, phoneTelem.lat],
+        zoom: 16,
+        pitch: 35,
+        duration: 1800,
+        essential: true,
+      });
+      return;
+    }
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          map.current?.flyTo({
+            center: [pos.coords.longitude, pos.coords.latitude],
+            zoom: 16,
+            pitch: 35,
+            duration: 1800,
+            essential: true,
+          });
+        },
+        (err) => {
+          alert(`Unable to get GPS location: ${err.message}. Please enable location permissions.`);
+        },
+        { enableHighAccuracy: true }
+      );
     }
   };
 
@@ -87,24 +132,38 @@ export const MapView: React.FC<MapViewProps> = ({
       style: {
         version: 8,
         sources: {
-          osm: {
+          esri_dark: {
             type: "raster",
             tiles: [
-              "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-              "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-              "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+              "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
             ],
             tileSize: 256,
-            attribution: "© OpenStreetMap contributors, © CARTO",
+            attribution: "© Esri, HERE, Garmin, OpenStreetMap contributors",
+            maxzoom: 16,
+          },
+          esri_reference: {
+            type: "raster",
+            tiles: [
+              "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+            ],
+            tileSize: 256,
+            maxzoom: 16,
           },
         },
         layers: [
           {
-            id: "osm-tiles",
+            id: "esri-dark-tiles",
             type: "raster",
-            source: "osm",
+            source: "esri_dark",
             minzoom: 0,
-            maxzoom: 19,
+            maxzoom: 22,
+          },
+          {
+            id: "esri-reference-tiles",
+            type: "raster",
+            source: "esri_reference",
+            minzoom: 0,
+            maxzoom: 22,
           },
         ],
       },
@@ -114,6 +173,13 @@ export const MapView: React.FC<MapViewProps> = ({
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.current.addControl(
+      new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+      }),
+      "top-right"
+    );
 
     map.current.on("load", () => {
       if (!map.current) return;
@@ -480,6 +546,15 @@ export const MapView: React.FC<MapViewProps> = ({
             </option>
           ))}
         </select>
+
+        <button
+          onClick={locateUser}
+          title="Fly to your live GPS coordinates anywhere in India"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-bold transition-all"
+        >
+          <Navigation className="w-3 h-3 text-cyan-400 animate-pulse" />
+          <span>Locate Me</span>
+        </button>
       </div>
     </div>
   );
