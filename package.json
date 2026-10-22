@@ -4,8 +4,8 @@
   "private": true,
   "description": "IDR 26168 Intelligent Dead Reckoning Navigation System",
   "scripts": {
-    "build": "cd web && pnpm install && pnpm run build",
-    "dev": "cd web && pnpm run dev",
-    "preview": "cd web && pnpm run preview"
+    "build": "cd web && npm install && npm run build",
+    "dev": "cd web && npm run dev",
+    "preview": "cd web && npm run preview"
   }
 }
