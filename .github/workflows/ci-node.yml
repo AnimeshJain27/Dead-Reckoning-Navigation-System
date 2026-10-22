@@ -1,0 +1,37 @@
+name: Backend & Web Node CI
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'web/**'
+      - 'packages/**'
+      - '.github/workflows/ci-node.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'web/**'
+      - 'packages/**'
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile || pnpm install
+
+      - name: Build and Test Contracts & Backend
+        run: |
+          pnpm --filter @idr/contracts build
+          pnpm --filter backend test

@@ -1,0 +1,402 @@
+openapi: 3.1.0
+info:
+  title: IDR 26168 Fleet & Dispatch Geospatial API
+  version: 1.0.0
+  description: High-performance geospatial API for live dead-reckoning fleet telemetry, map packs, and hazard monitoring.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /v1/health:
+    get:
+      summary: Liveness and database health probe
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  db_connected:
+                    type: boolean
+                  time:
+                    type: integer
+
+  /v1/devices:
+    post:
+      summary: Register a new vehicle navigation device
+      security:
+        - AdminAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Device created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  device_key:
+                    type: string
+    get:
+      summary: List registered fleet devices
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+
+  /v1/ingest:
+    post:
+      summary: Ingest batch telemetry from a mobile/edge device
+      security:
+        - DeviceAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestPayload'
+      responses:
+        '200':
+          description: Ingestion accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingested_states:
+                    type: integer
+                  ingested_events:
+                    type: integer
+
+  /v1/live:
+    get:
+      summary: Latest fleet state as GeoJSON FeatureCollection
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          content:
+            application/geo+json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: FeatureCollection
+                  features:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GeoJsonFeature'
+
+  /v1/trips:
+    get:
+      summary: List trips recorded by the fleet
+      security:
+        - AdminAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+
+  /v1/trips/{id}/track:
+    get:
+      summary: GeoJSON LineString of a trip trajectory
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/geo+json:
+              schema:
+                type: object
+
+  /v1/events:
+    get:
+      summary: Query integrity and interference events by bbox and time
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: bbox
+          in: query
+          description: minLon,minLat,maxLon,maxLat
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: integer
+        - name: to
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/geo+json:
+              schema:
+                type: object
+
+  /v1/road-conditions:
+    get:
+      summary: Clustered road surface hazards (potholes, speed-breakers)
+      security:
+        - AdminAuth: []
+      parameters:
+        - name: bbox
+          in: query
+          schema:
+            type: string
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [POTHOLE, SPEED_BREAKER]
+      responses:
+        '200':
+          content:
+            application/geo+json:
+              schema:
+                type: object
+
+  /v1/map-packs:
+    get:
+      summary: Available offline map packs manifest
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MapPackFile'
+
+  /v1/map-packs/{region}/{file}:
+    get:
+      summary: Download offline map pack file with HTTP range support
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Binary file stream
+        '206':
+          description: Partial content range response
+
+  /maps/{region}/basemap.pmtiles:
+    get:
+      summary: Public vector tile PMTiles endpoint with range requests
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PMTiles binary stream
+        '206':
+          description: Range bytes
+
+components:
+  securitySchemes:
+    AdminAuth:
+      type: http
+      scheme: bearer
+    DeviceAuth:
+      type: apiKey
+      in: header
+      name: X-Device-Key
+
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: integer
+        last_seen:
+          type: integer
+
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+        device_id:
+          type: string
+        started_at:
+          type: integer
+        ended_at:
+          type: integer
+        distance_m:
+          type: number
+        dr_distance_m:
+          type: number
+        max_hpl_m:
+          type: number
+        vehicle_mode:
+          type: string
+
+    State:
+      type: object
+      properties:
+        t_ms:
+          type: integer
+        lat:
+          type: number
+        lon:
+          type: number
+        speed_mps:
+          type: number
+        heading_deg:
+          type: number
+        mode:
+          type: string
+          enum: [GNSS_OK, DEGRADED, DR, REACQ, SUSPECT_RF]
+        hpl_m:
+          type: number
+        ell_major_m:
+          type: number
+        ell_minor_m:
+          type: number
+        ell_angle_deg:
+          type: number
+        way_id:
+          type: integer
+        vehicle_mode:
+          type: string
+        level:
+          type: integer
+
+    Event:
+      type: object
+      properties:
+        t_ms:
+          type: integer
+        lat:
+          type: number
+        lon:
+          type: number
+        type:
+          type: string
+        payload:
+          type: object
+
+    RoadCondition:
+      type: object
+      properties:
+        t_ms:
+          type: integer
+        lat:
+          type: number
+        lon:
+          type: number
+        kind:
+          type: string
+          enum: [POTHOLE, SPEED_BREAKER]
+        magnitude:
+          type: number
+        speed_mps:
+          type: number
+
+    IngestPayload:
+      type: object
+      properties:
+        trip_id:
+          type: string
+        device_id:
+          type: string
+        states:
+          type: array
+          items:
+            $ref: '#/components/schemas/State'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        road_conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoadCondition'
+
+    MapPackFile:
+      type: object
+      properties:
+        region:
+          type: string
+        version:
+          type: string
+        file:
+          type: string
+        bytes:
+          type: integer
+        sha256:
+          type: string
+        built_at:
+          type: integer
+
+    GeoJsonFeature:
+      type: object
+      properties:
+        type:
+          type: string
+          example: Feature
+        geometry:
+          type: object
+          properties:
+            type:
+              type: string
+              example: Point
+            coordinates:
+              type: array
+              items:
+                type: number
+        properties:
+          type: object

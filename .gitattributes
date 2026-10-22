@@ -1,0 +1,11 @@
+# Set default behaviour to automatically normalize line endings.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Git LFS tracks
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.png binary
+*.jpg binary
+*.pdf binary

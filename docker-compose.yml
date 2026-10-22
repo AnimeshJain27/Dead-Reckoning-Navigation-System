@@ -1,0 +1,61 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - fleet-data:/data
+      - ./maps:/data/maps:ro
+    environment:
+      - PORT=8080
+      - DATABASE_PATH=/data/fleet.sqlite
+      - MAPS_DIR=/data/maps
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - DEVICE_KEY_PEPPER=${DEVICE_KEY_PEPPER}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - HPL_ALERT_LIMIT_M=${HPL_ALERT_LIMIT_M:-20}
+      - STATE_RETENTION_DAYS=${STATE_RETENTION_DAYS:-30}
+    restart: unless-stopped
+
+  caddy:
+    profiles: ["prod"]
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/dist:/srv/web:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - API_DOMAIN=${API_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  ml:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: docker/ml.Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+
+  core-dev:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: docker/core-dev.Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+
+volumes:
+  fleet-data:
+  caddy-data:
+  caddy-config:

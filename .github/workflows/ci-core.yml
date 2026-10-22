@@ -1,0 +1,30 @@
+name: C++ Core Engine CI
+
+on:
+  push:
+    paths:
+      - 'core/**'
+      - '.github/workflows/ci-core.yml'
+  pull_request:
+    paths:
+      - 'core/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libeigen3-dev libgeographiclib-dev libgtest-dev
+
+      - name: Configure CMake
+        run: cmake -B build/core -S core -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Core Engine
+        run: cmake --build build/core
+
+      - name: Run Unit Tests
+        run: ctest --test-dir build/core --output-on-failure

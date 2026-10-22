@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://idr26168.local/schemas/stream.schema.json",
+  "title": "IDR Stream Message",
+  "description": "WebSocket live stream protocol for dispatch consoles",
+  "type": "object",
+  "required": ["type", "timestamp"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "auth",
+        "auth_ok",
+        "auth_error",
+        "state",
+        "event",
+        "hpl_alert",
+        "device_online",
+        "device_offline"
+      ]
+    },
+    "timestamp": {
+      "type": "integer"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

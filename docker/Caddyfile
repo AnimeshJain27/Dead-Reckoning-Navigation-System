@@ -1,0 +1,30 @@
+# IDR 26168 Caddy Web & Reverse Proxy Configuration
+
+:80 {
+    # Encode all responses
+    encode gzip zstd
+
+    # Root for static frontend files
+    root * /srv/web
+
+    # Health check endpoint
+    handle /healthz {
+        respond "OK" 200
+    }
+
+    # API and WebSocket routes forwarded to Fastify fleet backend
+    handle /v1/* {
+        reverse_proxy backend:8080
+    }
+
+    # Swagger Documentation routes
+    handle /docs* {
+        reverse_proxy backend:8080
+    }
+
+    # Static web app fallback (Single Page Application)
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}

@@ -1,0 +1,57 @@
+# Dependencies and virtual environments
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build outputs
+build/
+dist/
+target/
+*.egg-info/
+.dart_tool/
+.packages
+*.pdb
+*.ilk
+
+# Data and large binaries (rule 4)
+data/
+!data/README.md
+runs/
+*.tar.gz
+*.zip
+*.parquet
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.pmtiles
+*.pbf
+
+# Keep committed ONNX models and regional offline maps
+!models/**
+!maps/**/*.sqlite
+
+# Secrets and environment files
+.env
+.env.local
+*.keystore
+*.jks
+key.properties
+idr_secrets.json
+
+# C++ IDE and CMake temporary files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.cmake
+.ninja_deps
+.ninja_log
+
+# OS artifacts
+.DS_Store
+Thumbs.db
