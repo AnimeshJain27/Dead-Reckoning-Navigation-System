@@ -11,6 +11,7 @@ interface MapViewProps {
   replayTrack?: [number, number][];
   activeRegion?: string;
   onRegionChange?: (region: string) => void;
+  theme?: "dark" | "light";
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -21,6 +22,7 @@ export const MapView: React.FC<MapViewProps> = ({
   replayTrack,
   activeRegion = "mumbai_metro",
   onRegionChange,
+  theme = "dark",
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -149,14 +151,36 @@ export const MapView: React.FC<MapViewProps> = ({
             tileSize: 256,
             maxzoom: 16,
           },
+          esri_street: {
+            type: "raster",
+            tiles: [
+              "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+            ],
+            tileSize: 256,
+            attribution: "© Esri, HERE, Garmin, USGS, NGA, EPA, USDA, NPS",
+            maxzoom: 18,
+          },
         },
         layers: [
+          {
+            id: "esri-street-tiles",
+            type: "raster",
+            source: "esri_street",
+            minzoom: 0,
+            maxzoom: 22,
+            layout: {
+              visibility: theme === "light" ? "visible" : "none",
+            },
+          },
           {
             id: "esri-dark-tiles",
             type: "raster",
             source: "esri_dark",
             minzoom: 0,
             maxzoom: 22,
+            layout: {
+              visibility: theme === "light" ? "none" : "visible",
+            },
           },
           {
             id: "esri-reference-tiles",
@@ -164,6 +188,9 @@ export const MapView: React.FC<MapViewProps> = ({
             source: "esri_reference",
             minzoom: 0,
             maxzoom: 22,
+            layout: {
+              visibility: theme === "light" ? "none" : "visible",
+            },
           },
         ],
       },
@@ -401,6 +428,52 @@ export const MapView: React.FC<MapViewProps> = ({
     };
   }, []);
 
+  // Dynamic Theme Switching (Google Maps Street Light vs Tactical Dark)
+  useEffect(() => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+
+    try {
+      const isLight = theme === "light";
+      if (map.current.getLayer("esri-street-tiles")) {
+        map.current.setLayoutProperty(
+          "esri-street-tiles",
+          "visibility",
+          isLight ? "visible" : "none"
+        );
+      }
+      if (map.current.getLayer("esri-dark-tiles")) {
+        map.current.setLayoutProperty(
+          "esri-dark-tiles",
+          "visibility",
+          isLight ? "none" : "visible"
+        );
+      }
+      if (map.current.getLayer("esri-reference-tiles")) {
+        map.current.setLayoutProperty(
+          "esri-reference-tiles",
+          "visibility",
+          isLight ? "none" : "visible"
+        );
+      }
+      if (map.current.getLayer("freeway-line")) {
+        map.current.setPaintProperty(
+          "freeway-line",
+          "line-color",
+          isLight ? "#0284c7" : "#06b6d4"
+        );
+      }
+      if (map.current.getLayer("trunk-line")) {
+        map.current.setPaintProperty(
+          "trunk-line",
+          "line-color",
+          isLight ? "#2563eb" : "#38bdf8"
+        );
+      }
+    } catch (err) {
+      console.warn("Basemap theme switch error:", err);
+    }
+  }, [theme]);
+
   // Update Replay Track
   useEffect(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
@@ -533,12 +606,28 @@ export const MapView: React.FC<MapViewProps> = ({
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Floating Region Selector Pill on Map Canvas */}
-      <div className="absolute top-20 left-6 z-10 glass-panel px-3 py-1.5 flex items-center gap-2">
-        <span className="text-[10px] text-slate-400 font-bold uppercase">Region:</span>
+      <div
+        className={`absolute top-20 left-6 z-10 px-3 py-1.5 flex items-center gap-2 rounded-xl border backdrop-blur-md transition-all shadow-lg ${
+          theme === "light"
+            ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-200/50"
+            : "glass-panel text-white border-slate-700/80"
+        }`}
+      >
+        <span
+          className={`text-[10px] font-bold uppercase ${
+            theme === "light" ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          Region:
+        </span>
         <select
           value={region}
           onChange={(e) => handleSelectRegion(e.target.value)}
-          className="bg-slate-900 text-cyan-300 border border-slate-700 rounded-lg text-xs font-bold px-2.5 py-1 focus:outline-none focus:border-cyan-400 cursor-pointer"
+          className={`border rounded-lg text-xs font-bold px-2.5 py-1 focus:outline-none cursor-pointer transition-all ${
+            theme === "light"
+              ? "bg-slate-50 text-slate-900 border-slate-300 focus:border-cyan-600"
+              : "bg-slate-900 text-cyan-300 border-slate-700 focus:border-cyan-400"
+          }`}
         >
           {Object.entries(regionConfigs).map(([k, cfg]) => (
             <option key={k} value={k}>
@@ -550,9 +639,13 @@ export const MapView: React.FC<MapViewProps> = ({
         <button
           onClick={locateUser}
           title="Fly to your live GPS coordinates anywhere in India"
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/50 text-cyan-200 text-xs font-bold transition-all"
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+            theme === "light"
+              ? "bg-cyan-50 hover:bg-cyan-100 border-cyan-300 text-cyan-800"
+              : "bg-cyan-600/30 hover:bg-cyan-600/50 border-cyan-500/50 text-cyan-200"
+          }`}
         >
-          <Navigation className="w-3 h-3 text-cyan-400 animate-pulse" />
+          <Navigation className="w-3 h-3 text-cyan-500 animate-pulse" />
           <span>Locate Me</span>
         </button>
       </div>

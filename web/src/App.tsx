@@ -7,6 +7,7 @@ import { EventLog } from "./components/EventLog.js";
 import { DeviceSimulator } from "./components/DeviceSimulator.js";
 import { MapPackModal } from "./components/MapPackModal.js";
 import { ApkDownloadModal } from "./components/ApkDownloadModal.js";
+import { ModelPerformanceModal } from "./components/ModelPerformanceModal.js";
 import { api } from "./api/client.js";
 import { mobileSensors } from "./services/mobileSensorService.js";
 import type { DeviceTelemetry, NavEvent, RoadHazard } from "./types.js";
@@ -19,11 +20,24 @@ export const App: React.FC = () => {
   const [hazards, setHazards] = useState<RoadHazard[]>([]);
   const [replayTrack, setReplayTrack] = useState<[number, number][]>([]);
 
+  // Theme state: dark (default tactical) or light (Google Maps daytime street style)
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
   // Modals
   const [showSimulator, setShowSimulator] = useState<boolean>(false);
   const [showMapPacks, setShowMapPacks] = useState<boolean>(false);
   const [showApkModal, setShowApkModal] = useState<boolean>(false);
+  const [showModelPerformance, setShowModelPerformance] = useState<boolean>(false);
   const [activeRegion, setActiveRegion] = useState<string>("mumbai_metro");
+
+  // Synchronize theme with body
+  useEffect(() => {
+    if (theme === "light") {
+      document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
+    }
+  }, [theme]);
 
   // Initial fetch and subscription
   useEffect(() => {
@@ -118,7 +132,11 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-950 flex flex-col">
+    <div
+      className={`relative w-screen h-screen overflow-hidden flex flex-col transition-colors duration-300 ${
+        theme === "light" ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-white"
+      }`}
+    >
       {/* Absolute Header Overlay */}
       <Header
         activeView={activeView}
@@ -127,6 +145,9 @@ export const App: React.FC = () => {
         onOpenSimulator={() => setShowSimulator(true)}
         onOpenMapPacks={() => setShowMapPacks(true)}
         onOpenApkModal={() => setShowApkModal(true)}
+        onOpenModelPerformance={() => setShowModelPerformance(true)}
+        theme={theme}
+        onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
       />
 
       {/* Main Map Canvas */}
@@ -139,6 +160,7 @@ export const App: React.FC = () => {
           replayTrack={replayTrack}
           activeRegion={activeRegion}
           onRegionChange={setActiveRegion}
+          theme={theme}
         />
       </div>
 
@@ -152,15 +174,31 @@ export const App: React.FC = () => {
       </div>
 
       {/* Vehicle Switcher Bar (Bottom-Right) */}
-      <div className="absolute right-6 bottom-6 z-10 glass-panel p-2 flex items-center gap-2 max-w-[50vw] overflow-x-auto">
-        <span className="text-[10px] text-slate-400 font-bold px-2 uppercase shrink-0">Fleet:</span>
+      <div
+        className={`absolute right-6 bottom-6 z-10 p-2 flex items-center gap-2 max-w-[50vw] overflow-x-auto rounded-xl border backdrop-blur-md shadow-lg transition-all ${
+          theme === "light"
+            ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-200/50"
+            : "glass-panel text-white border-slate-700/80"
+        }`}
+      >
+        <span
+          className={`text-[10px] font-bold px-2 uppercase shrink-0 ${
+            theme === "light" ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          Fleet:
+        </span>
         {telemetryList.map((d) => (
           <button
             key={d.device_id}
             onClick={() => setSelectedDevice(d.device_id)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
               d.device_id === selectedDevice
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow"
+                ? theme === "light"
+                  ? "bg-cyan-100 text-cyan-900 border border-cyan-400 shadow-sm"
+                  : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow"
+                : theme === "light"
+                ? "bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200"
                 : "bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800"
             }`}
           >
@@ -193,6 +231,13 @@ export const App: React.FC = () => {
       <ApkDownloadModal
         isOpen={showApkModal}
         onClose={() => setShowApkModal(false)}
+      />
+
+      {/* Neural Model Accuracy & Benchmark Performance Modal */}
+      <ModelPerformanceModal
+        isOpen={showModelPerformance}
+        onClose={() => setShowModelPerformance(false)}
+        theme={theme}
       />
     </div>
   );

@@ -14,6 +14,17 @@
   --text-muted: #94a3b8;
 }
 
+body.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: rgba(255, 255, 255, 0.9);
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --border-card: rgba(0, 0, 0, 0.12);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+}
+
 * {
   box-sizing: border-box;
 }
